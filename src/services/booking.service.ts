@@ -25,7 +25,7 @@ export const hasAnyConflict = async (venueId: number, start: Date, end: Date) =>
   return await prisma.booking.findFirst({
     where: {
       venueId,
-      status: { in: [BookingStatus.PENDING, BookingStatus.APPROVED] },
+      status: { in: [BookingStatus.PENDING_COORDINATOR, BookingStatus.PENDING_VENUE_HANDLER, BookingStatus.PENDING_HOD, BookingStatus.APPROVED] },
       AND: [
         { eventStart: { lt: end } },
         { eventEnd: { gt: start } },

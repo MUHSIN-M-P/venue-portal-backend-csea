@@ -1,13 +1,14 @@
 import { Request, Response } from "express";
-import { PrismaClient } from "../generated/prisma/client.js";
+import { PrismaClient, BookingStatus } from "../generated/prisma/client.js";
 import { getApprovedConflict } from "../services/booking.service.js";
+import { WorkflowService } from "../services/workflow.service.js";
 
 const prisma = new PrismaClient();
 
 export const createBooking = async (req: Request, res: Response) => {
   try {
     const { venueId, eventName, eventStart, eventEnd, initialHandlerId } = req.body;
-    const clubId = (req.user as any).userId; 
+    const clubId = (req.user as any).userId;
 
     const approvedConflict = await getApprovedConflict(venueId, new Date(eventStart), new Date(eventEnd));
     if (approvedConflict) {
@@ -17,23 +18,19 @@ export const createBooking = async (req: Request, res: Response) => {
       });
     }
 
-    let handlerId = initialHandlerId;
 
-    if (!handlerId) {
-      // Auto-assignment: Pick the FACULTY_IN_CHARGE of this venue if student not picked
-      const autoHandler = await prisma.venueHandler.findFirst({
-        where: { venueId, isActive: true, role: 'FACULTY_IN_CHARGE' },
-        select: { handlerId: true }
-      });
-      handlerId = autoHandler?.handlerId;
-    }
-
-    if (!handlerId) {
-      return res.status(400).json({ 
+    const clubProfile = await prisma.club.findUnique({
+      where: { clubId }
+    });
+    if (!clubProfile) {
+      return res.status(404).json({
         success: false,
-        message: "Could not assign a faculty reviewer. Please select one manually." 
+        message: "Club profile not found for this user."
       });
     }
+    // club's coordinator
+    const handlerId = initialHandlerId || clubProfile.facultyCoordinatorId;
+
 
     const booking = await prisma.booking.create({
       data: {
@@ -42,57 +39,145 @@ export const createBooking = async (req: Request, res: Response) => {
         eventName,
         eventStart: new Date(eventStart),
         eventEnd: new Date(eventEnd),
-        currentHandlerId: handlerId,
-        status: "PENDING"
+        status: BookingStatus.PENDING_COORDINATOR,
+        currentHandlers: {
+          create: {
+            handlerId
+          }
+        }
+      },
+      include: {
+        currentHandlers: {
+          include: {
+            handler: true
+          }
+        }
       }
     });
 
     return res.status(201).json({ success: true, data: booking });
-  } catch (error) {
+
+  } catch (error: any) {
     console.error(error);
-    return res.status(500).json({ success: false, message: "Internal Server Error" });
+    return res.status(500).json({ success: false, message: error.message || "Internal Server Error" });
   }
 };
 
 export const approveBooking = async (req: Request, res: Response) => {
   const { id } = req.params;
-  const actorId = (req.user as any).userId;
+  const approverId = (req.user as any).userId;
+  const { remarks } = req.body;
 
   try {
-    const result = await prisma.$transaction(async (tx) => {
-      const booking = await tx.booking.findUnique({
-        where: { bookingId: Number(id) }
-      });
-
-      if (!booking || booking.status !== 'PENDING') {
-          throw new Error("Invalid booking or already processed.");
-      }
-
-      // Re-verify that no OTHER booking for this venue was approved while this one was pending
-      const finalConflictCheck = await tx.booking.findFirst({
-        where: {
-          venueId: booking.venueId,
-          status: 'APPROVED',
-          NOT: { bookingId: booking.bookingId },
-          AND: [
-            { eventStart: { lt: booking.eventEnd } },
-            { eventEnd: { gt: booking.eventStart } },
-          ],
-        },
-      });
-
-      if (finalConflictCheck) {
-        throw new Error("CONFLICT: Another request for this venue and time was just approved.");
-      }
-
-      return await tx.booking.update({
-        where: { bookingId: Number(id) },
-        data: { status: 'APPROVED' }
-      });
-    });
-
+    const result = await WorkflowService.approveBooking(Number(id), approverId, remarks);
     return res.json({ success: true, data: result });
   } catch (error: any) {
     return res.status(400).json({ success: false, message: error.message });
+  }
+};
+
+export const rejectBooking = async (req: Request, res: Response) => {
+  const { id } = req.params;
+  const rejecterId = (req.user as any).userId;
+  const { reason } = req.body;
+
+  try {
+    const result = await WorkflowService.rejectBooking(Number(id), rejecterId, reason);
+    return res.json({ success: true, data: result });
+  } catch (error: any) {
+    return res.status(400).json({ success: false, message: error.message });
+  }
+};
+
+
+export const listBookings = async (req: Request, res: Response) => {
+  const user = req.user as any;
+  if (!user) {
+    return res.status(401).json({ success: false, message: "Unauthorized" });
+  }
+
+  try {
+    let whereClause: any = {};
+
+    if (user.role === "CLUB") {
+      whereClause.clubId = user.userId;
+    } else if (user.role === "FACULTY_COORDINATOR") {
+      whereClause.OR = [
+        { currentHandlers: { some: { handlerId: user.userId } } },
+        { club: { facultyCoordinatorId: user.userId } }
+      ];
+    } else if (user.role === "STAFF_IN_CHARGE" || user.role === "FACULTY_IN_CHARGE") {
+      const managedVenues = await prisma.venueHandler.findMany({
+        where: { handlerId: user.userId, isActive: true },
+        select: { venueId: true }
+      });
+      const managedVenueIds = managedVenues.map(vh => vh.venueId);
+
+      whereClause.OR = [
+        { currentHandlers: { some: { handlerId: user.userId } } },
+        {
+          venueId: { in: managedVenueIds },
+          status: BookingStatus.PENDING_VENUE_HANDLER
+        }
+      ];
+    } else if (user.role === "HOD" || user.role === "ADMIN") {
+      whereClause = {};
+    }
+
+    const bookings = await prisma.booking.findMany({
+      where: whereClause,
+      include: {
+        club: true,
+        venue: true,
+        currentHandlers: {
+          include: {
+            handler: {
+              select: { userId: true, name: true, email: true, role: true }
+            }
+          }
+        }
+      },
+      orderBy: { createdAt: "desc" }
+    });
+
+    return res.json({ success: true, data: bookings });
+  } catch (error: any) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+export const getBookingById = async (req: Request, res: Response) => {
+  const { id } = req.params;
+  try {
+    const booking = await prisma.booking.findUnique({
+      where: { bookingId: Number(id) },
+      include: {
+        club: true,
+        venue: true,
+        currentHandlers: {
+          include: {
+            handler: {
+              select: { userId: true, name: true, email: true, role: true }
+            }
+          }
+        },
+        logs: {
+          include: {
+            actor: {
+              select: { userId: true, name: true, email: true, role: true }
+            }
+          },
+          orderBy: { timestamp: "asc" }
+        }
+      }
+    });
+
+    if (!booking) {
+      return res.status(404).json({ success: false, message: "Booking not found" });
+    }
+
+    return res.json({ success: true, data: booking });
+  } catch (error: any) {
+    return res.status(500).json({ success: false, message: error.message });
   }
 };

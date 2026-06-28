@@ -40,7 +40,9 @@ enum HandlerRole {
 }
 
 enum BookingStatus {
-  PENDING
+  PENDING_COORDINATOR
+  PENDING_VENUE_HANDLER
+  PENDING_HOD
   APPROVED
   REJECTED
   CANCELLED
@@ -74,7 +76,7 @@ model User {
   venueAssignments  VenueHandler[]
 
   // A User can HOLD THE BALL for a booking
-  bookingsToHandle  Booking[] @relation("CurrentHandler")
+  bookingsToHandle BookingHandler[]
 
   // Audit Logs & Queries
   performedActions  ActivityLog[]
@@ -176,10 +178,10 @@ model Booking {
   eventName         String        @map("event_name")
   eventStart        DateTime      @map("event_start")
   eventEnd          DateTime      @map("event_end")
-  status            BookingStatus @default(PENDING)
+  status            BookingStatus @default(PENDING_COORDINATOR)
   
   // Workflow Logic
-  currentHandlerId  Int           @map("current_handler_id")
+  initialHandlerId  Int?          @map("initial_handler_id")
   actionToken       String?       @map("action_token")
   actionTokenExpiry DateTime?     @map("action_token_expiry")
   
@@ -189,8 +191,8 @@ model Booking {
   // Relations
   club            Club          @relation(fields: [clubId], references: [clubId])
   venue           Venue         @relation(fields: [venueId], references: [venueId])
-  currentHandler  User          @relation("CurrentHandler", fields: [currentHandlerId], references: [userId])
   logs            ActivityLog[]
+  currentHandlers BookingHandler[]
   
   // Note: Queries are linked to users, but logically relate to bookings. 
   // You can add `queries Query[]` here if you modify the Query model to include bookingId.
@@ -226,4 +228,15 @@ model Query {
   toUser     User     @relation("Receiver", fields: [toUserId], references: [userId])
 
   @@map("queries")
+}
+
+model BookingHandler {
+  bookingId Int @map("booking_id")
+  handlerId Int @map("handler_id")
+
+  booking Booking @relation(fields: [bookingId], references: [bookingId], onDelete: Cascade)
+  handler User    @relation(fields: [handlerId], references: [userId], onDelete: Cascade)
+
+  @@id([bookingId, handlerId])
+  @@map("booking_handlers")
 }
