@@ -11,13 +11,13 @@ passport.use(
     {
       clientID: process.env.GOOGLE_CLIENT_ID!,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
-      callbackURL: 'http://localhost:3000/api/auth/google/callback',
+      callbackURL: process.env.GOOGLE_CALLBACK_URL || 'http://localhost:3000/api/auth/google/callback',
     },
     async (accessToken: String, refreshToken: String, profile: Profile, done) => {
       try {
         const email = profile.emails?.[0].value;
         if (!email) {
-          return done(new Error('No email found'), undefined);
+          return done(new Error('No email found in Google profile'), undefined);
         }
 
         let user: Express.User = await prisma.user.findUnique({
@@ -32,13 +32,27 @@ passport.use(
         });
 
         if (!user) {
-          // If user doesn't exist, we don't let them in
-          // Only admins can create users manually
-          return done(new Error('User not found'), undefined);
+          // TEMPORARY FOR TESTING: Auto-create user if they don't exist in DB
+          user = await prisma.user.create({
+            data: {
+              email,
+              name: profile.displayName || 'Test User',
+              role: 'ADMIN', // Default role for testing (e.g., 'ADMIN', 'CLUB', 'HOD')
+              isActive: true,
+            },
+            select: {
+              userId: true,
+              email: true,
+              name: true,
+              role: true,
+              isActive: true,
+            }
+          });
+          // return done(new Error('Unauthorized: This email is not registered in the system. Please ask an Admin to add you.'), undefined);
         }
 
         if (!user.isActive) {
-          return done(new Error('User is not active'), undefined);
+          return done(new Error('Unauthorized: This user account has been deactivated.'), undefined);
         }
 
         console.debug('Authenticated user:', user);

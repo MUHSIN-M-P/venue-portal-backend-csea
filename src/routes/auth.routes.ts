@@ -17,8 +17,9 @@ authRouter.get(
     (req: Request, res: Response, next: NextFunction) => {
         passport.authenticate('google', { session: false }, async (err, user) => {
             if (err || !user) {
-                console.log(err)
-                return res.redirect(`${process.env.FRONTEND_URL}/api/auth/login-failure`);
+                console.error('Google Auth Error:', err);
+                const errorMessage = err?.message || 'Authentication failed';
+                return res.redirect(`${process.env.FRONTEND_URL}/login?error=${encodeURIComponent(errorMessage)}`);
             }
 
             const payload = user;
@@ -47,7 +48,7 @@ authRouter.get(
                 })
             } catch (error) {
                 console.error('Error creating refresh token session:', error);
-                return res.status(500).send('Internal Server Error');
+                return res.redirect(`${process.env.FRONTEND_URL}/login?error=${encodeURIComponent('Internal server error during session creation')}`);
             }
 
             res.cookie('refreshToken', refreshToken, {
@@ -57,7 +58,7 @@ authRouter.get(
                 maxAge: 14 * 24 * 60 * 60 * 1000 // 14 days
             });
 
-            return res.redirect(`${process.env.FRONTEND_URL}/api/auth/login-success?token=${authtoken}`);
+            return res.redirect(`${process.env.FRONTEND_URL}/login/success?token=${authtoken}`);
         })(req, res, next);
     }
 )
