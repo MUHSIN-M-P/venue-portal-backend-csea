@@ -40,13 +40,15 @@ export const createVenue = async (req: Request, res: Response) => {
 export const getAvailableVenues = async (req: Request, res: Response) => {
     try {
         const venues = await prisma.venue.findMany({
-            where: { isAvailable: true },
             select: {
                 venueId: true,
                 name: true,
+                venueType: true,
+                location: true,
+                capacity: true,
+                isAvailable: true,
                 pictures: true,
                 handlers: {
-                    //get venue handler
                     include: {
                         user: {
                             select: {
