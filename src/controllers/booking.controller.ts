@@ -292,3 +292,49 @@ export const getBookingById = async (req: Request, res: Response) => {
     return res.status(500).json({ success: false, message: error.message });
   }
 };
+
+export const getAvailableVenues = async (req: Request, res: Response) => {
+  try {
+    const venues = await prisma.venue.findMany({
+      where: {
+        isAvailable: true
+      },
+      select: {
+        venueId: true,
+        name: true,
+        venueType: true,
+        location: true,
+        capacity: true,
+        isAvailable: true,
+      }
+    });
+    return res.json({ success: true, venues });
+  } catch (error: any) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+export const getVenueSchedule = async (req: Request, res: Response) => {
+  const { id } = req.params;
+  try {
+    const bookings = await prisma.booking.findMany({
+      where: {
+        venueId: Number(id),
+        status: {
+          in: ["APPROVED", "PENDING_COORDINATOR", "PENDING_VENUE_HANDLER", "PENDING_HOD"]
+        }
+      },
+      select: {
+        bookingId: true,
+        clubId: true,
+        eventStart: true,
+        eventEnd: true,
+        status: true
+      }
+    });
+
+    return res.json({ success: true, bookings });
+  } catch (error: any) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+};

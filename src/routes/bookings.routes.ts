@@ -15,6 +15,8 @@ bookingsRouter.use(authenticator);
 
 bookingsRouter.post("/", validate(createBookingSchema as any), bookingController.createBooking);
 bookingsRouter.get("/", bookingController.listBookings);
+bookingsRouter.get("/venues/:id/schedule", bookingController.getVenueSchedule);
+bookingsRouter.get("/venues", bookingController.getAvailableVenues);
 bookingsRouter.get("/:id", validate(bookingIdParamSchema as any), bookingController.getBookingById);
 
 // Workflow Actions
