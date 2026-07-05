@@ -20,7 +20,9 @@ app.listen(PORT, () => {
 async function shutdown(signal: string) {
     console.log(`\n[shutdown] Received ${signal}. Shutting down gracefully…`);
     await closeEmailWorker();
-    await emailQueue.close();
+    if (emailQueue) {
+        await emailQueue.close();
+    }
     process.exit(0);
 }
 

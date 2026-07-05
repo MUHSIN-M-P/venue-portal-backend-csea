@@ -10,6 +10,8 @@ import {
     createVenueSchema,
     updateVenueSchema,
     venueIdSchema,
+    addVenueHandlerSchema,
+    removeVenueHandlerSchema,
 } from "../schemas/venue.schema.js";
 import * as userController from "../controllers/admin.user.controller.js";
 import * as venueController from "../controllers/admin.venue.controller.js";
@@ -68,6 +70,16 @@ adminRouter.delete(
     "/venues/:venueId",
     validate(venueIdSchema as any),
     venueController.deleteVenue,
+);
+adminRouter.post(
+    "/venues/:venueId/handlers",
+    validate(addVenueHandlerSchema as any),
+    venueController.addVenueHandler,
+);
+adminRouter.delete(
+    "/venues/:venueId/handlers/:handlerId",
+    validate(removeVenueHandlerSchema as any),
+    venueController.removeVenueHandler,
 );
 
 export default adminRouter;

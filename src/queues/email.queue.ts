@@ -23,7 +23,9 @@ function parseRedisUrl(url: string) {
   };
 }
 
-export const redisConnection = parseRedisUrl(REDIS_URL);
+const isRedisDisabled = process.env.DISABLE_REDIS === 'true';
+
+export const redisConnection = isRedisDisabled ? null as any : parseRedisUrl(REDIS_URL);
 
 // ---------------------------------------------------------------------------
 // Queue instance
@@ -31,18 +33,20 @@ export const redisConnection = parseRedisUrl(REDIS_URL);
 
 export const EMAIL_QUEUE_NAME = 'email';
 
-export const emailQueue = new Queue(EMAIL_QUEUE_NAME, {
-  connection: redisConnection,
-  defaultJobOptions: {
-    attempts: 3,
-    backoff: {
-      type: 'exponential',
-      delay: 2_000, // 2 s → 4 s → 8 s
-    },
-    removeOnComplete: { count: 200 },  // keep last 200 completed jobs
-    removeOnFail: { count: 500 },      // keep last 500 failed jobs
-  },
-});
+export const emailQueue = isRedisDisabled
+  ? null as any
+  : new Queue(EMAIL_QUEUE_NAME, {
+      connection: redisConnection,
+      defaultJobOptions: {
+        attempts: 3,
+        backoff: {
+          type: 'exponential',
+          delay: 2_000, // 2 s → 4 s → 8 s
+        },
+        removeOnComplete: { count: 200 },  // keep last 200 completed jobs
+        removeOnFail: { count: 500 },      // keep last 500 failed jobs
+      },
+    });
 
 // ---------------------------------------------------------------------------
 // Helper — add an email job to the queue
@@ -63,7 +67,9 @@ export async function addEmailJob(
   name: string,
   payload: SendEmailPayload,
 ): Promise<EmailJobResult> {
-  const job = await emailQueue.add(name, payload);
-  console.log(`[email-queue] Job "${name}" enqueued — id: ${job.id}`);
-  return { queued: true, jobId: job.id! };
+  // const job = await emailQueue.add(name, payload);
+  // console.log(`[email-queue] Job "${name}" enqueued — id: ${job.id}`);
+  // return { queued: true, jobId: job.id! };
+  console.log(`[email-queue] Suppressed job "${name}" (email notifications temporarily disabled)`);
+  return { queued: true, jobId: 'mock-job-id' };
 }

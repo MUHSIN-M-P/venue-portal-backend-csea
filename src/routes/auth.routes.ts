@@ -8,8 +8,8 @@ const authRouter = Router();
 const prisma = new PrismaClient();
 
 authRouter.get(
-  "/login",
-  passport.authenticate('google', { scope: ["profile", "email"] })
+    "/login",
+    passport.authenticate('google', { scope: ["profile", "email"] })
 );
 
 authRouter.get(
@@ -38,7 +38,7 @@ authRouter.get(
                 { expiresIn: '14d' }
             )
 
-            try{
+            try {
                 const createRefreshToken = await prisma.session.create({
                     data: {
                         userId: payload.userId,
@@ -74,7 +74,7 @@ authRouter.get("/login-failure", (req, res) => {
     res.send("Login Failed");
 });
 
-authRouter.get("/refresh",  (req: Request, res: Response) => {
+authRouter.get("/refresh", (req: Request, res: Response) => {
     const refreshToken = req.cookies.refreshToken;
 
     if (!refreshToken) {

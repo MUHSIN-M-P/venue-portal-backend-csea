@@ -41,6 +41,25 @@ export class WorkflowService {
 				throw new Error("Approver user not found.");
 			}
 
+			// Role validation based on status
+			if (booking.status === BookingStatus.PENDING_COORDINATOR) {
+				if (user.role !== "FACULTY_COORDINATOR" && user.role !== "ADMIN") {
+					throw new Error("Only a Faculty Coordinator or Admin can approve this request at this stage.");
+				}
+			} else if (booking.status === BookingStatus.PENDING_VENUE_HANDLER) {
+				if (
+					user.role !== "FACULTY_IN_CHARGE" &&
+					user.role !== "STAFF_IN_CHARGE" &&
+					user.role !== "ADMIN"
+				) {
+					throw new Error("Only a Venue Handler (Faculty/Staff In-Charge) or Admin can approve this request at this stage.");
+				}
+			} else if (booking.status === BookingStatus.PENDING_HOD) {
+				if (user.role !== "HOD" && user.role !== "ADMIN") {
+					throw new Error("Only the HOD or Admin can approve this request at this stage.");
+				}
+			}
+
 			const venueHandlers = await tx.venueHandler.findMany({
 				where: { venueId: booking.venueId, isActive: true },
 				include: { user: true },
@@ -257,6 +276,25 @@ export class WorkflowService {
 			const rejecterUser = await tx.user.findUnique({ where: { userId: rejecterId } });
 			if (!rejecterUser) {
 				throw new Error("Rejecter user not found.");
+			}
+
+			// Role validation based on status
+			if (booking.status === BookingStatus.PENDING_COORDINATOR) {
+				if (rejecterUser.role !== "FACULTY_COORDINATOR" && rejecterUser.role !== "ADMIN") {
+					throw new Error("Only a Faculty Coordinator or Admin can reject this request at this stage.");
+				}
+			} else if (booking.status === BookingStatus.PENDING_VENUE_HANDLER) {
+				if (
+					rejecterUser.role !== "FACULTY_IN_CHARGE" &&
+					rejecterUser.role !== "STAFF_IN_CHARGE" &&
+					rejecterUser.role !== "ADMIN"
+				) {
+					throw new Error("Only a Venue Handler (Faculty/Staff In-Charge) or Admin can reject this request at this stage.");
+				}
+			} else if (booking.status === BookingStatus.PENDING_HOD) {
+				if (rejecterUser.role !== "HOD" && rejecterUser.role !== "ADMIN") {
+					throw new Error("Only the HOD or Admin can reject this request at this stage.");
+				}
 			}
 
 			// Clear current handlers

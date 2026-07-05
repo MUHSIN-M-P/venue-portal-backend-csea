@@ -30,6 +30,23 @@ export const venueIdSchema = z.object({
     }),
 });
 
+export const addVenueHandlerSchema = z.object({
+    params: z.object({
+        venueId: z.string().regex(/^\d+$/).transform(Number),
+    }),
+    body: z.object({
+        handlerId: z.number().int().positive(),
+        role: z.enum(["STAFF_IN_CHARGE", "FACULTY_IN_CHARGE"]),
+    }),
+});
+
+export const removeVenueHandlerSchema = z.object({
+    params: z.object({
+        venueId: z.string().regex(/^\d+$/).transform(Number),
+        handlerId: z.string().regex(/^\d+$/).transform(Number),
+    }),
+});
+
 export type CreateVenueInput = z.infer<typeof createVenueSchema>;
 export type UpdateVenueInput = z.infer<typeof updateVenueSchema>;
 export type venueIdInput = z.infer<typeof venueIdSchema>;

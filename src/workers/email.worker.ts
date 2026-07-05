@@ -15,6 +15,11 @@ const CONCURRENCY = parseInt(process.env.EMAIL_QUEUE_CONCURRENCY ?? '3', 10);
  * Call once at app startup (e.g. in index.ts).
  */
 export function startEmailWorker(): void {
+  if (process.env.DISABLE_REDIS === 'true') {
+    console.log('[email-worker] Redis is disabled. Email worker is skipped.');
+    return;
+  }
+
   if (worker) {
     console.warn('[email-worker] Worker is already running.');
     return;
