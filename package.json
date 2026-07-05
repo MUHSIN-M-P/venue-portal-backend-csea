@@ -1,52 +1,52 @@
 {
-  "name": "venue-portal-backend",
-  "version": "1.0.0",
-  "description": "",
-  "homepage": "https://github.com/csea-nitc/venue-portal-backend#readme",
-  "bugs": {
-    "url": "https://github.com/csea-nitc/venue-portal-backend/issues"
-  },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/csea-nitc/venue-portal-backend.git"
-  },
-  "license": "ISC",
-  "author": "",
-  "type": "module",
-  "main": "./dist/index.js",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "build": "tsc --build",
-    "start": "node ./dist/index.js",
-    "dev": "nodemon --exec tsx ./src/index.ts"
-  },
-  "dependencies": {
-    "@prisma/client": "^6.19.2",
-    "@types/jsonwebtoken": "^9.0.10",
-    "bullmq": "^5.79.2",
-    "cookie-parser": "^1.4.7",
-    "express": "^5.2.1",
-    "ioredis": "^5.11.1",
-    "jsonwebtoken": "^9.0.3",
-    "nodemailer": "^9.0.1",
-    "passport": "^0.7.0",
-    "passport-google-oauth20": "^2.0.0",
-    "passport-jwt": "^4.0.1",
-    "prisma": "^6.19.2",
-    "zod": "^4.3.6"
-  },
-  "devDependencies": {
-    "@types/cookie-parser": "^1.4.10",
-    "@types/express": "^5.0.6",
-    "@types/node": "^25.0.10",
-    "@types/nodemailer": "^8.0.1",
-    "@types/passport": "^1.0.17",
-    "@types/passport-google-oauth20": "^2.0.17",
-    "@types/passport-jwt": "^4.0.1",
-    "@types/pg": "^8.16.0",
-    "nodemon": "^3.1.11",
-    "ts-node": "^10.9.2",
-    "tsx": "^4.21.0",
-    "typescript": "^5.9.3"
-  }
+	"name": "venue-portal-backend",
+	"version": "1.0.0",
+	"description": "",
+	"homepage": "https://github.com/csea-nitc/venue-portal-backend#readme",
+	"bugs": {
+		"url": "https://github.com/csea-nitc/venue-portal-backend/issues"
+	},
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/csea-nitc/venue-portal-backend.git"
+	},
+	"license": "ISC",
+	"author": "",
+	"type": "module",
+	"main": "./dist/index.js",
+	"scripts": {
+		"test": "echo \"Error: no test specified\" && exit 1",
+		"build": "prisma generate && tsc --build",
+		"start": "node ./dist/index.js",
+		"dev": "nodemon --exec tsx ./src/index.ts"
+	},
+	"dependencies": {
+		"@prisma/client": "^6.19.2",
+		"@types/jsonwebtoken": "^9.0.10",
+		"bullmq": "^5.79.2",
+		"cookie-parser": "^1.4.7",
+		"express": "^5.2.1",
+		"ioredis": "^5.11.1",
+		"jsonwebtoken": "^9.0.3",
+		"nodemailer": "^9.0.1",
+		"passport": "^0.7.0",
+		"passport-google-oauth20": "^2.0.0",
+		"passport-jwt": "^4.0.1",
+		"prisma": "^6.19.2",
+		"zod": "^4.3.6"
+	},
+	"devDependencies": {
+		"@types/cookie-parser": "^1.4.10",
+		"@types/express": "^5.0.6",
+		"@types/node": "^25.0.10",
+		"@types/nodemailer": "^8.0.1",
+		"@types/passport": "^1.0.17",
+		"@types/passport-google-oauth20": "^2.0.17",
+		"@types/passport-jwt": "^4.0.1",
+		"@types/pg": "^8.16.0",
+		"nodemon": "^3.1.11",
+		"ts-node": "^10.9.2",
+		"tsx": "^4.21.0",
+		"typescript": "^5.9.3"
+	}
 }
