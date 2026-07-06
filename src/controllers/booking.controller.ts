@@ -297,7 +297,10 @@ export const getAvailableVenues = async (req: Request, res: Response) => {
   try {
     const venues = await prisma.venue.findMany({
       where: {
-        isAvailable: true
+        isAvailable: true,
+        handlers: {
+          some: {}
+        }
       },
       select: {
         venueId: true,

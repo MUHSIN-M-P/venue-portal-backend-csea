@@ -10,6 +10,12 @@ export const createVenueSchema = z.object({
         capacity: z.number().int().positive(),
         isAvailable: z.boolean().default(true),
         pictures: z.array(z.string().url("Invalid URL")).optional(),
+        handlers: z.array(
+            z.object({
+                handlerId: z.number().int().positive(),
+                role: z.enum(["STAFF_IN_CHARGE", "FACULTY_IN_CHARGE"]),
+            })
+        ).min(1, "At least one venue handler is required"),
     }),
 });
 

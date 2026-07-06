@@ -5,7 +5,7 @@ const prisma = new PrismaClient();
 
 export const createVenue = async (req: Request, res: Response) => {
     try {
-        const { name, venueType, location, capacity, isAvailable, pictures } =
+        const { name, venueType, location, capacity, isAvailable, pictures, handlers } =
             req.body;
 
         const venue = await prisma.venue.create({
@@ -22,6 +22,12 @@ export const createVenue = async (req: Request, res: Response) => {
                         })),
                     },
                 }),
+                handlers: {
+                    create: handlers.map((h: any) => ({
+                        handlerId: h.handlerId,
+                        role: h.role,
+                    })),
+                },
             },
             include: {
                 pictures: true,
@@ -271,6 +277,14 @@ export const addVenueHandler = async (req: Request, res: Response) => {
 export const removeVenueHandler = async (req: Request, res: Response) => {
     try {
         const { venueId, handlerId } = req.params;
+
+        const handlerCount = await prisma.venueHandler.count({
+            where: { venueId: Number(venueId) }
+        });
+
+        if (handlerCount <= 1) {
+            return res.status(400).json({ error: "Cannot remove the only handler from a venue. A venue must have at least one handler." });
+        }
 
         const deleted = await prisma.venueHandler.deleteMany({
             where: {
